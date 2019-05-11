@@ -8,23 +8,40 @@ from datetime import datetime
 from argparse import ArgumentParser
 from glob import glob
 from os.path import join, dirname
-import pickle
+from multiprocessing import cpu_count, Pool
 
 from gensim.models import KeyedVectors
+import numpy as np
+
+
+def get_vector(train):
+    label, preprocessed_sentence = train
+    return label, [model[word] for word in preprocessed_sentence.split() if word in model]
+
+
+def padding(train):
+    label, features = train
+    return label, np.pad(features, ([0, max_len - len(features)], [0, 0]), 'constant')
 
 
 def preprocess():
-    def get_vector(train):
-        label, preprocessed_sentence = train
-        return label, [model[word] for word in preprocessed_sentence.split() if word in model]
-
     train_list = read.trains(glob(join(dirname(__file__), 'storage/train/*.list')))
     train_list = preprocessing.scenario.run(train_list)
 
-    model = KeyedVectors.load(wv_model_path)
+    with Pool(cpu_count()) as p:
+        train_list = p.map(get_vector, train_list)
 
-    with open('storage/train/train.pkl', mode='wb') as f:
-        pickle.dump([get_vector(train) for train in train_list], f)
+    train_list = [(label, features) for label, features in train_list if features]
+
+    global max_len
+    max_len = max(map(lambda train: len(train[1]), train_list))
+
+    with Pool(cpu_count()) as p:
+        train_list = p.map(padding, train_list)
+
+    print('ok')
+
+    np.savez('train.npz', train=train_list)
 
 
 def train():
@@ -43,7 +60,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--model', help='word2vec model path', type=str, required=True)
     args = parser.parse_args()
 
-    wv_model_path = args.model
+    model = KeyedVectors.load(args.model)
 
     if args.phase == 0:
         preprocess()
