@@ -24,9 +24,18 @@ class MLP():
         self.__model = self.model()
 
     def load(self):
+        global dataset
+        import random
+        random.shuffle(dataset)
 
+        split_index = int(len(dataset) * 0.8)
+        train = dataset[:split_index]
+        test = dataset[split_index:]
 
-        return 1, 2, 3, 4
+        X_train, Y_train = list(zip(*train))
+        X_test, Y_test = list(zip(*test))
+
+        return X_train, X_test, Y_train, Y_test
 
     def model(self):
         model = Sequential()

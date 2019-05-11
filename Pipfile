@@ -10,6 +10,9 @@ tensorflow-gpu = "*"
 keras = "*"
 gensim = "*"
 mecab-python3 = "*"
+gpy = "*"
+gpyopt = "*"
+matplotlib = "*"
 
 [requires]
 python_version = "3.6"
